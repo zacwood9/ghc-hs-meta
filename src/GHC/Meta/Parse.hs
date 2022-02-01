@@ -4,14 +4,6 @@
 -- | This module is here to parse Haskell expression using the GHC Api
 module GHC.Meta.Parse (parseExp, parseExpWithExts, parseExpWithFlags, parseHsExpr) where
 
-#if MIN_VERSION_ghc(9,0,0)
-import GHC.Parser.Lexer (ParseResult (..), PState (..))
-#elif MIN_VERSION_ghc(8,10,0)
-import Lexer (ParseResult (..), PState (..))
-#else
-import Lexer (ParseResult (..))
-#endif
-
 #if MIN_VERSION_ghc(9,2,0)
 import qualified GHC.Parser.Errors.Ppr as ParserErrorPpr
 import GHC.Driver.Config (initParserOpts)
@@ -19,28 +11,8 @@ import GHC.Parser.Annotation (LocatedA)
 #endif
 
 #if MIN_VERSION_ghc(9,0,0)
-import qualified GHC.Types.SrcLoc as SrcLoc
-#else
-import qualified SrcLoc
-#endif
-
-#if MIN_VERSION_ghc(9,0,0)
-import GHC.Driver.Session (DynFlags)
-#else
-import DynFlags (DynFlags)
-#endif
-
-#if MIN_VERSION_ghc(8,10,0)
-import GHC.Hs.Expr as Expr
-import GHC.Hs.Extension as Ext
-#else
-import HsExpr as Expr
-import HsExtension as Ext
-import Outputable (showSDoc)
-#endif
-
-#if MIN_VERSION_ghc(9,0,0)
 import GHC.Parser.PostProcess
+import qualified GHC.Types.SrcLoc as SrcLoc
 import GHC.Driver.Session
 import GHC.Data.StringBuffer
 import GHC.Parser.Lexer
@@ -48,10 +20,10 @@ import qualified GHC.Parser.Lexer as Lexer
 import qualified GHC.Parser as Parser
 import GHC.Data.FastString
 import GHC.Types.SrcLoc
-import GHC.Driver.Backpack.Syntax
-import GHC.Unit.Info
-import GHC.Types.Name.Reader
 #else
+import qualified SrcLoc
+import DynFlags (DynFlags)
+import Lexer (ParseResult (..), PState (..))
 import StringBuffer
 import Lexer
 import qualified Parser
@@ -61,16 +33,29 @@ import RdrName
 import RdrHsSyn (runECP_P)
 #endif
 
+import GHC.Hs.Expr as Expr
+import GHC.Hs.Extension as Ext
 import qualified GHC.Meta.Settings as Settings
 import qualified Language.Haskell.TH.Syntax as GhcTH
 import qualified Language.Haskell.TH.Syntax as TH
 
 import GHC.Meta.ToExp
 
--- | Parse a Haskell expression from source code into a Template Haskell expression. 
+-- | Parse a Haskell expression from source code into a Template Haskell expression.
 -- Uses no extensions. See @parseExpWithExts@ or @parseExpWithFlags@ for customizing.
 parseExp :: String -> Either (Int, Int, String) TH.Exp
-parseExp = parseExpWithFlags (Settings.baseDynFlags [])
+#if MIN_VERSION_ghc(9,2,0)
+parseExp = parseExpWithExts 
+    [ GhcTH.TypeApplications 
+    , GhcTH.OverloadedRecordDot
+    , GhcTH.OverloadedLabels
+    , GhcTH.OverloadedRecordUpdate
+    ]
+#else
+parseExp = parseExpWithExts 
+    [ GhcTH.TypeApplications 
+    ]
+#endif
 
 -- | Parse a Haskell expression from source code into a Template Haskell expression
 -- using a given set of GHC extensions.
@@ -135,24 +120,24 @@ parse p str flags =
   Lexer.unP p parseState
   where
     location = mkRealSrcLoc (mkFastString "<string>") 1 1
-    buffer = stringToStringBuffer str
+    strBuffer = stringToStringBuffer str
     parseState =
 #if MIN_VERSION_ghc(9, 2, 0)
-      initParserState (initParserOpts flags) buffer location
+      initParserState (initParserOpts flags) strBuffer location
 #else
-      mkPState flags buffer location
+      mkPState flags strBuffer location
 #endif
 
 #if MIN_VERSION_ghc(9, 2, 0)
 runParser :: DynFlags -> String -> ParseResult (LocatedA (HsExpr GhcPs))
-runParser flags s =
-  case parse Parser.parseExpression s flags of
+runParser flags str =
+  case parse Parser.parseExpression str flags of
     POk s e -> unP (runPV (unECP e)) s
     PFailed ps -> PFailed ps
 #elif MIN_VERSION_ghc(8, 10, 0)
 runParser :: DynFlags -> String -> ParseResult (Located (HsExpr GhcPs))
-runParser flags s =
-  case parse Parser.parseExpression s flags of
+runParser flags str =
+  case parse Parser.parseExpression str flags of
     POk s e -> unP (runECP_P e) s
     PFailed ps -> PFailed ps
 #else

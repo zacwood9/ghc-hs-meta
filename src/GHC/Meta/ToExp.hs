@@ -62,10 +62,13 @@ import qualified Module
 import GHC.Stack
 import qualified GHC.Meta.Settings as Settings
 
+import qualified Data.List.NonEmpty as NonEmpty
+
 #if MIN_VERSION_ghc(9,2,0)
 -- TODO: why this disapears in GHC >= 9.2?
 fl_value = rationalFromFractionalLit
 #endif
+
 
 
 -----------------------------
@@ -199,6 +202,22 @@ toExp d (Expr.ArithSeq _ _ e) = TH.ArithSeqE $ case e of
   (FromThen a b) -> TH.FromThenR (toExp d $ unLoc a) (toExp d $ unLoc b)
   (FromTo a b) -> TH.FromToR (toExp d $ unLoc a) (toExp d $ unLoc b)
   (FromThenTo a b c) -> TH.FromThenToR (toExp d $ unLoc a) (toExp d $ unLoc b) (toExp d $ unLoc c)
+
+#if MIN_VERSION_ghc(9, 2, 0)
+toExp _ (Expr.HsProjection _ locatedFields) = 
+  let
+    extractFieldLabel (HsFieldLabel _ locatedStr) = locatedStr
+    extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
+  in 
+    TH.ProjectionE (NonEmpty.map (unpackFS . unLoc . extractFieldLabel . unLoc) locatedFields)
+toExp d (Expr.HsGetField _ expr locatedField) = 
+  let
+    extractFieldLabel (HsFieldLabel _ locatedStr) = locatedStr
+    extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
+  in 
+    TH.GetFieldE (toExp d (unLoc expr)) (unpackFS . unLoc . extractFieldLabel . unLoc $ locatedField)
+#endif
+toExp _ (Expr.HsOverLabel _ fastString) = TH.LabelE (unpackFS fastString)
 toExp dynFlags e = todo "toExp" (showSDocDebug dynFlags . ppr $ e)
 
 todo :: (HasCallStack, Show e) => String -> e -> a
