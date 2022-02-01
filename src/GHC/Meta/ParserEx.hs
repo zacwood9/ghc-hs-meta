@@ -201,3 +201,6 @@ parseExpression s flags =
 #else
 parseExpression = parse Parser.parseExpression
 #endif
+
+fakeDynFlags :: DynFlags
+fakeDynFlags = defaultDynFlags fakeSettings fakeLlvmConfig
