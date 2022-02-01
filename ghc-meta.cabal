@@ -6,8 +6,8 @@ build-type:     Simple
 
 library
   exposed-modules:
-      GHC.Meta.Parser
-      GHC.Meta.ParserEx
+      GHC.Meta.Parse
+      GHC.Meta.Settings
       GHC.Meta.ToExp
   other-modules:
       Paths_ghc_meta

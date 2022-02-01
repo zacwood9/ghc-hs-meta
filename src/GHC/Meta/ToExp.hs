@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module GHC.Meta.ToExp (toExp, baseDynFlags) where
+module GHC.Meta.ToExp (toExp) where
 
 #if MIN_VERSION_ghc(9,2,0)
 import GHC.Hs.Type (HsWildCardBndrs (..), HsType (..), HsSigType(HsSig), sig_body)
@@ -31,7 +31,6 @@ import HsLit
 import qualified Data.ByteString as B
 import qualified Language.Haskell.TH.Syntax as GhcTH
 import qualified Language.Haskell.TH.Syntax as TH
-import GHC.Meta.ParserEx (fakeLlvmConfig, fakeSettings)
 
 #if MIN_VERSION_ghc(9,0,0)
 import GHC.Types.SrcLoc
@@ -61,11 +60,15 @@ import qualified Module
 #endif
 
 import GHC.Stack
+import qualified GHC.Meta.Settings as Settings
 
 #if MIN_VERSION_ghc(9,2,0)
 -- TODO: why this disapears in GHC >= 9.2?
 fl_value = rationalFromFractionalLit
 #endif
+
+
+-----------------------------
 
 toLit :: HsLit GhcPs -> TH.Lit
 toLit (HsChar _ c) = TH.CharL c
@@ -98,14 +101,14 @@ toType (HsTyVar _ _ n) =
    in if isRdrTyVar n'
         then TH.VarT (toName n')
         else TH.ConT (toName n')
-toType t = todo "toType" (showSDocDebug (baseDynFlags []) . ppr $ t)
+toType t = todo "toType" (showSDocDebug (Settings.baseDynFlags []) . ppr $ t)
 
 toName :: RdrName -> TH.Name
 toName n = case n of
   (Unqual o) -> TH.mkName (occNameString o)
   (Qual m o) -> TH.mkName (Module.moduleNameString m <> "." <> occNameString o)
-  (Orig m o) -> error "orig"
-  (Exact n1) -> error "exact"
+  (Orig _ _) -> error "orig"
+  (Exact _) -> error "exact"
 
 toFieldExp :: a
 toFieldExp = undefined
@@ -143,7 +146,11 @@ toExp d (Expr.NegApp _ e _) = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
 -- NOTE: for lambda, there is only one match
 toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)])) _)) = TH.LamE (fmap (toPat d) ps) (toExp d e)
 -- toExp (Expr.Let _ bs e)                       = TH.LetE (toDecs bs) (toExp e)
--- toExp (Expr.If _ a b c)                       = TH.CondE (toExp a) (toExp b) (toExp c)
+#if MIN_VERSION_ghc(9, 0, 0)
+toExp d (Expr.HsIf _ a b c)                   = TH.CondE (toExp d (unLoc a)) (toExp d (unLoc b)) (toExp d (unLoc c))
+#else
+toExp d (Expr.HsIf _ _ a b c)                   = TH.CondE (toExp d (unLoc a)) (toExp d (unLoc b)) (toExp d (unLoc c))
+#endif
 -- toExp (Expr.MultiIf _ ifs)                    = TH.MultiIfE (map toGuard ifs)
 -- toExp (Expr.Case _ e alts)                    = TH.CaseE (toExp e) (map toMatch alts)
 -- toExp (Expr.Do _ ss)                          = TH.DoE (map toStmt ss)
@@ -202,8 +209,3 @@ noTH fun thing = error . concat $ [moduleName, ".", fun, ": no TemplateHaskell f
 
 moduleName :: String
 moduleName = "PyF.Internal.Meta"
-
-baseDynFlags :: [GhcTH.Extension] -> DynFlags
-baseDynFlags exts =
-  let enable = GhcTH.TemplateHaskellQuotes : exts
-   in foldl xopt_set (defaultDynFlags fakeSettings fakeLlvmConfig) enable

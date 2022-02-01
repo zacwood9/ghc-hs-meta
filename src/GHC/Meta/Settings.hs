@@ -4,7 +4,8 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -Wno-missing-fields -Wno-name-shadowing -Wno-unused-imports #-}
 
-module GHC.Meta.ParserEx (fakeSettings, fakeLlvmConfig, parseExpression) where
+-- | Settings needed for running the GHC Parser.
+module GHC.Meta.Settings (baseDynFlags) where
 
 {- ORMOLU_DISABLE -}
 
@@ -86,6 +87,7 @@ import BasicTypes
 import OccName
 #endif
 
+import qualified Language.Haskell.TH.Syntax as GhcTH
 import Data.Maybe
 
 fakeSettings :: Settings
@@ -171,36 +173,7 @@ fakeLlvmConfig :: (LlvmTargets, LlvmPasses)
 fakeLlvmConfig = ([], [])
 #endif
 
--- From Language.Haskell.GhclibParserEx.GHC.Parser
-
-parse :: P a -> String -> DynFlags -> ParseResult a
-parse p str flags =
-  Lexer.unP p parseState
-  where
-    location = mkRealSrcLoc (mkFastString "<string>") 1 1
-    buffer = stringToStringBuffer str
-    parseState =
-#if MIN_VERSION_ghc(9, 2, 0)
-      initParserState (initParserOpts flags) buffer location
-#else
-      mkPState flags buffer location
-#endif
-
-#if MIN_VERSION_ghc(9, 2, 0)
-parseExpression :: String -> DynFlags -> ParseResult (LocatedA (HsExpr GhcPs))
-parseExpression s flags =
-  case parse Parser.parseExpression s flags of
-    POk s e -> unP (runPV (unECP e)) s
-    PFailed ps -> PFailed ps
-#elif MIN_VERSION_ghc(8, 10, 0)
-parseExpression :: String -> DynFlags -> ParseResult (Located (HsExpr GhcPs))
-parseExpression s flags =
-  case parse Parser.parseExpression s flags of
-    POk s e -> unP (runECP_P e) s
-    PFailed ps -> PFailed ps
-#else
-parseExpression = parse Parser.parseExpression
-#endif
-
-fakeDynFlags :: DynFlags
-fakeDynFlags = defaultDynFlags fakeSettings fakeLlvmConfig
+baseDynFlags :: [GhcTH.Extension] -> DynFlags
+baseDynFlags exts =
+  let enable = GhcTH.TemplateHaskellQuotes : exts
+   in foldl xopt_set (defaultDynFlags fakeSettings fakeLlvmConfig) enable
