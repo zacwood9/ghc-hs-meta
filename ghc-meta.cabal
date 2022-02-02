@@ -7,7 +7,7 @@ author:         Zachary Wood
 maintainer:     zac.wood@hey.com
 license:        BSD-3-Clause
 license-files:  LICENSE LICENSE-PyF
-synopsis:       Haskell source -> Template Haskell expression
+synopsis:       Haskell source to Template Haskell expression
 description:    Generate Template Haskell expressions from Haskell source code using the GHC parser
 category:       ghc,template-haskell
 tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
