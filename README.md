@@ -1,6 +1,20 @@
 # ghc-meta
 
 Generate Template Haskell expressions from Haskell source code using the GHC parser.
+This package runs on GHC versions 8.10.7, 9.0.2, and 9.2.1.
+
+## Usage
+
+Pass a String containing Haskell source code to `parseExp`.
+Example from the tests:
+
+```haskell
+case parseExp "a @b" of
+    Right exp -> exp `shouldBe` TH.AppTypeE (TH.VarE (TH.mkName "a")) (TH.VarT (TH.mkName "b"))
+    Left (_, _, errMsg) -> error errMsg
+```
+
+See Hackage documentation for more documentation.
 
 ## Thank you, PyF
 
@@ -9,13 +23,3 @@ I extracted the relevant code and refactored/renamed things to be usable in a mo
 Without PyF, this could wouldn't have been possible. Thank you!
 
 The original license for PyF can be found in the `LICENSE-PyF` file included in this repository.
-
-## Usage
-
-See `test/Main.hs` for how to use this package.
-
-```haskell
-case parseExp "a @b" of
-    Right exp -> exp `shouldBe` TH.AppTypeE (TH.VarE (TH.mkName "a")) (TH.VarT (TH.mkName "b"))
-    Left (_, _, errMsg) -> error errMsg
-```

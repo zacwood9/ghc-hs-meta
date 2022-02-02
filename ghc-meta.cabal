@@ -1,8 +1,17 @@
-cabal-version: 1.12
+cabal-version:  2.4
 
 name:           ghc-meta
-version:        0.0.0.2
+version:        0.1.0.0
 build-type:     Simple
+author:         Zachary Wood
+maintainer:     zac.wood@hey.com
+license:        BSD-3-Clause
+license-files:  LICENSE LICENSE-PyF
+synopsis:       Generate Template Haskell expressions from Haskell source code using the GHC parser
+description:    Generate Template Haskell expressions from Haskell source code using the GHC parser
+tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
+
+extra-source-files: CHANGELOG.md README.md
 
 library
   exposed-modules:
@@ -41,3 +50,7 @@ test-suite tests
     , hspec
     , bytestring
     , ghc-meta
+
+source-repository head
+  type:     git
+  location: https://github.com/zacwood9/ghc-meta

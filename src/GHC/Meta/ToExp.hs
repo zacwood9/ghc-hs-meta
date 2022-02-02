@@ -216,8 +216,8 @@ toExp d (Expr.HsGetField _ expr locatedField) =
     extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
   in 
     TH.GetFieldE (toExp d (unLoc expr)) (unpackFS . unLoc . extractFieldLabel . unLoc $ locatedField)
-#endif
 toExp _ (Expr.HsOverLabel _ fastString) = TH.LabelE (unpackFS fastString)
+#endif
 toExp dynFlags e = todo "toExp" (showSDocDebug dynFlags . ppr $ e)
 
 todo :: (HasCallStack, Show e) => String -> e -> a

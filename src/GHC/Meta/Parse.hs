@@ -42,7 +42,7 @@ import qualified Language.Haskell.TH.Syntax as TH
 import GHC.Meta.ToExp
 
 -- | Parse a Haskell expression from source code into a Template Haskell expression.
--- Uses no extensions. See @parseExpWithExts@ or @parseExpWithFlags@ for customizing.
+-- See @parseExpWithExts@ or @parseExpWithFlags@ for customizing with additional extensions and settings.
 parseExp :: String -> Either (Int, Int, String) TH.Exp
 #if MIN_VERSION_ghc(9,2,0)
 parseExp = parseExpWithExts 
@@ -69,7 +69,7 @@ parseExpWithFlags flags expStr = do
   hsExpr <- parseHsExpr flags expStr
   pure (toExp flags hsExpr)
 
--- | Parse a Haskell expression into a @HsExpr@.
+-- | Run the GHC parser to parse a Haskell expression into a @HsExpr@.
 parseHsExpr :: DynFlags -> String -> Either (Int, Int, String) (HsExpr GhcPs)
 parseHsExpr dynFlags s =
   case runParser dynFlags s of
