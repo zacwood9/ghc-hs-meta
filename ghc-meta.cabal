@@ -7,8 +7,9 @@ author:         Zachary Wood
 maintainer:     zac.wood@hey.com
 license:        BSD-3-Clause
 license-files:  LICENSE LICENSE-PyF
-synopsis:       Generate Template Haskell expressions from Haskell source code using the GHC parser
+synopsis:       Haskell source -> Template Haskell expression
 description:    Generate Template Haskell expressions from Haskell source code using the GHC parser
+category:       ghc template-haskell text
 tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
 
 extra-source-files: CHANGELOG.md README.md
@@ -18,8 +19,6 @@ library
       GHC.Meta.Parse
       GHC.Meta.Settings
       GHC.Meta.ToExp
-  other-modules:
-      Paths_ghc_meta
   hs-source-dirs:
       src
   default-extensions:
