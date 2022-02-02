@@ -26,11 +26,11 @@ library
       LambdaCase
   ghc-options: -Wall
   build-depends:
-      base >=4.14 && <4.17
-    , ghc
-    , ghc-boot
-    , template-haskell
-    , bytestring
+      base >= 4.14 && <4.17
+    , ghc >= 8.10.7 && < 9.3
+    , ghc-boot >= 8.10.7 && < 9.3
+    , template-haskell >= 2.16.0 && < 2.19
+    , bytestring >= 0.10 && < 0.12
   default-language: Haskell2010
 
 test-suite tests
