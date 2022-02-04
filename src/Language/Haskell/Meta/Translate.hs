@@ -4,7 +4,7 @@
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE ViewPatterns #-}
 
-module GHC.Meta.ToExp (toExp) where
+module Language.Haskell.Meta.Translate (toExp) where
 
 #if MIN_VERSION_ghc(9,2,0)
 import GHC.Hs.Type (HsWildCardBndrs (..), HsType (..), HsSigType(HsSig), sig_body)
@@ -60,7 +60,7 @@ import qualified Module
 #endif
 
 import GHC.Stack
-import qualified GHC.Meta.Settings as Settings
+import qualified Language.Haskell.Meta.Settings as Settings
 
 import qualified Data.List.NonEmpty as NonEmpty
 
@@ -126,15 +126,25 @@ toExp _ (Expr.HsVar _ n) =
    in if isRdrDataCon n'
         then TH.ConE (toName n')
         else TH.VarE (toName n')
+
 #if MIN_VERSION_ghc(9,0,0)
 toExp _ (Expr.HsUnboundVar _ n)              = TH.UnboundVarE (TH.mkName . occNameString $ n)
 #else
 toExp _ (Expr.HsUnboundVar _ n)              = TH.UnboundVarE (TH.mkName . occNameString . Expr.unboundVarOcc $ n)
 #endif
-toExp _ Expr.HsIPVar {} = noTH "toExp" "HsIPVar"
-toExp _ (Expr.HsLit _ l) = TH.LitE (toLit l)
-toExp _ (Expr.HsOverLit _ OverLit {ol_val}) = TH.LitE (toLit' ol_val)
-toExp d (Expr.HsApp _ e1 e2) = TH.AppE (toExp d . unLoc $ e1) (toExp d . unLoc $ e2)
+
+toExp _ Expr.HsIPVar {}
+  = noTH "toExp" "HsIPVar"
+
+toExp _ (Expr.HsLit _ l)
+  = TH.LitE (toLit l)
+
+toExp _ (Expr.HsOverLit _ OverLit {ol_val})
+  = TH.LitE (toLit' ol_val)
+
+toExp d (Expr.HsApp _ e1 e2)
+  = TH.AppE (toExp d . unLoc $ e1) (toExp d . unLoc $ e2)
+
 #if MIN_VERSION_ghc(9,2,0)
 toExp d (Expr.HsAppType _ e HsWC {hswc_body}) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
 toExp d (Expr.ExprWithTySig _ e HsWC{hswc_body=unLoc -> HsSig{sig_body}}) = TH.SigE (toExp d . unLoc $ e) (toType . unLoc $ sig_body)
@@ -144,20 +154,30 @@ toExp d (Expr.ExprWithTySig _ e HsWC{hswc_body=HsIB{hsib_body}}) = TH.SigE (toEx
 #else
 toExp d (Expr.HsAppType HsWC {hswc_body} e) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
 #endif
-toExp d (Expr.OpApp _ e1 o e2) = TH.UInfixE (toExp d . unLoc $ e1) (toExp d . unLoc $ o) (toExp d . unLoc $ e2)
-toExp d (Expr.NegApp _ e _) = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
+
+toExp d (Expr.OpApp _ e1 o e2)
+  = TH.UInfixE (toExp d . unLoc $ e1) (toExp d . unLoc $ o) (toExp d . unLoc $ e2)
+
+toExp d (Expr.NegApp _ e _)
+  = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
+
 -- NOTE: for lambda, there is only one match
-toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)])) _)) = TH.LamE (fmap (toPat d) ps) (toExp d e)
+toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)])) _))
+  = TH.LamE (fmap (toPat d) ps) (toExp d e)
+
 -- toExp (Expr.Let _ bs e)                       = TH.LetE (toDecs bs) (toExp e)
+--
 #if MIN_VERSION_ghc(9, 0, 0)
 toExp d (Expr.HsIf _ a b c)                   = TH.CondE (toExp d (unLoc a)) (toExp d (unLoc b)) (toExp d (unLoc c))
 #else
 toExp d (Expr.HsIf _ _ a b c)                   = TH.CondE (toExp d (unLoc a)) (toExp d (unLoc b)) (toExp d (unLoc c))
 #endif
+
 -- toExp (Expr.MultiIf _ ifs)                    = TH.MultiIfE (map toGuard ifs)
 -- toExp (Expr.Case _ e alts)                    = TH.CaseE (toExp e) (map toMatch alts)
 -- toExp (Expr.Do _ ss)                          = TH.DoE (map toStmt ss)
 -- toExp e@Expr.MDo{}                            = noTH "toExp" e
+--
 #if MIN_VERSION_ghc(9, 2, 0)
 toExp d (Expr.ExplicitTuple _ args boxity) = ctor tupArgs
 #else
@@ -181,43 +201,56 @@ toExp d (Expr.ExplicitTuple _ (map unLoc -> args) boxity) = ctor tupArgs
 #endif
 
 -- toExp (Expr.List _ xs)                        = TH.ListE (fmap toExp xs)
-toExp d (Expr.HsPar _ e) = TH.ParensE (toExp d . unLoc $ e)
-toExp d (Expr.SectionL _ (unLoc -> a) (unLoc -> b)) = TH.InfixE (Just . toExp d $ a) (toExp d b) Nothing
-toExp d (Expr.SectionR _ (unLoc -> a) (unLoc -> b)) = TH.InfixE Nothing (toExp d a) (Just . toExp d $ b)
-toExp _ (Expr.RecordCon _ name HsRecFields {rec_flds}) =
-  TH.RecConE (toName . unLoc $ name) (fmap toFieldExp rec_flds)
+toExp d (Expr.HsPar _ e)
+  = TH.ParensE (toExp d . unLoc $ e)
+
+toExp d (Expr.SectionL _ (unLoc -> a) (unLoc -> b))
+  = TH.InfixE (Just . toExp d $ a) (toExp d b) Nothing
+
+toExp d (Expr.SectionR _ (unLoc -> a) (unLoc -> b))
+  = TH.InfixE Nothing (toExp d a) (Just . toExp d $ b)
+
+toExp _ (Expr.RecordCon _ name HsRecFields {rec_flds})
+  = TH.RecConE (toName . unLoc $ name) (fmap toFieldExp rec_flds)
+
 -- toExp (Expr.RecUpdate _ e xs)                 = TH.RecUpdE (toExp e) (fmap toFieldExp xs)
 -- toExp (Expr.ListComp _ e ss)                  = TH.CompE $ map convert ss ++ [TH.NoBindS (toExp e)]
 --  where
 --   convert (Expr.QualStmt _ st)                = toStmt st
 --   convert s                                   = noTH "toExp ListComp" s
 -- toExp (Expr.ExpTypeSig _ e t)                 = TH.SigE (toExp e) (toType t)
+--
 #if MIN_VERSION_ghc(9, 2, 0)
 toExp d (Expr.ExplicitList _ (map unLoc -> args)) = TH.ListE (map (toExp d) args)
 #else
 toExp d (Expr.ExplicitList _ _ (map unLoc -> args)) = TH.ListE (map (toExp d) args)
 #endif
-toExp d (Expr.ArithSeq _ _ e) = TH.ArithSeqE $ case e of
-  (From a) -> TH.FromR (toExp d $ unLoc a)
-  (FromThen a b) -> TH.FromThenR (toExp d $ unLoc a) (toExp d $ unLoc b)
-  (FromTo a b) -> TH.FromToR (toExp d $ unLoc a) (toExp d $ unLoc b)
-  (FromThenTo a b c) -> TH.FromThenToR (toExp d $ unLoc a) (toExp d $ unLoc b) (toExp d $ unLoc c)
+
+toExp d (Expr.ArithSeq _ _ e)
+  = TH.ArithSeqE $ case e of
+    (From a) -> TH.FromR (toExp d $ unLoc a)
+    (FromThen a b) -> TH.FromThenR (toExp d $ unLoc a) (toExp d $ unLoc b)
+    (FromTo a b) -> TH.FromToR (toExp d $ unLoc a) (toExp d $ unLoc b)
+    (FromThenTo a b c) -> TH.FromThenToR (toExp d $ unLoc a) (toExp d $ unLoc b) (toExp d $ unLoc c)
 
 #if MIN_VERSION_ghc(9, 2, 0)
-toExp _ (Expr.HsProjection _ locatedFields) = 
+toExp _ (Expr.HsProjection _ locatedFields) =
   let
     extractFieldLabel (HsFieldLabel _ locatedStr) = locatedStr
     extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
-  in 
+  in
     TH.ProjectionE (NonEmpty.map (unpackFS . unLoc . extractFieldLabel . unLoc) locatedFields)
-toExp d (Expr.HsGetField _ expr locatedField) = 
+
+toExp d (Expr.HsGetField _ expr locatedField) =
   let
     extractFieldLabel (HsFieldLabel _ locatedStr) = locatedStr
     extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
-  in 
+  in
     TH.GetFieldE (toExp d (unLoc expr)) (unpackFS . unLoc . extractFieldLabel . unLoc $ locatedField)
+
 toExp _ (Expr.HsOverLabel _ fastString) = TH.LabelE (unpackFS fastString)
 #endif
+
 toExp dynFlags e = todo "toExp" (showSDocDebug dynFlags . ppr $ e)
 
 todo :: (HasCallStack, Show e) => String -> e -> a
@@ -227,4 +260,4 @@ noTH :: (HasCallStack, Show e) => String -> e -> a
 noTH fun thing = error . concat $ [moduleName, ".", fun, ": no TemplateHaskell for: ", show thing]
 
 moduleName :: String
-moduleName = "PyF.Internal.Meta"
+moduleName = "Language.Haskell.Meta.Translate"

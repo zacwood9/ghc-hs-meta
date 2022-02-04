@@ -2,7 +2,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 -- | This module is here to parse Haskell expression using the GHC Api
-module GHC.Meta.Parse (parseExp, parseExpWithExts, parseExpWithFlags, parseHsExpr) where
+module Language.Haskell.Meta.Parse (parseExp, parseExpWithExts, parseExpWithFlags, parseHsExpr) where
 
 #if MIN_VERSION_ghc(9,2,0)
 import qualified GHC.Parser.Errors.Ppr as ParserErrorPpr
@@ -33,33 +33,33 @@ import RdrName
 import RdrHsSyn (runECP_P)
 #endif
 
-import GHC.Hs.Expr as Expr
-import GHC.Hs.Extension as Ext
-import qualified GHC.Meta.Settings as Settings
-import qualified Language.Haskell.TH.Syntax as GhcTH
+import GHC.Hs.Extension (GhcPs)
+import Language.Haskell.Syntax (HsExpr(..))
+import Language.Haskell.TH (Extension(..))
 import qualified Language.Haskell.TH.Syntax as TH
 
-import GHC.Meta.ToExp
+import qualified Language.Haskell.Meta.Settings as Settings
+import Language.Haskell.Meta.Translate (toExp)
 
 -- | Parse a Haskell expression from source code into a Template Haskell expression.
 -- See @parseExpWithExts@ or @parseExpWithFlags@ for customizing with additional extensions and settings.
 parseExp :: String -> Either (Int, Int, String) TH.Exp
 #if MIN_VERSION_ghc(9,2,0)
-parseExp = parseExpWithExts 
-    [ GhcTH.TypeApplications 
-    , GhcTH.OverloadedRecordDot
-    , GhcTH.OverloadedLabels
-    , GhcTH.OverloadedRecordUpdate
+parseExp = parseExpWithExts
+    [ TypeApplications
+    , OverloadedRecordDot
+    , OverloadedLabels
+    , OverloadedRecordUpdate
     ]
 #else
-parseExp = parseExpWithExts 
-    [ GhcTH.TypeApplications 
+parseExp = parseExpWithExts
+    [ GhcTH.TypeApplications
     ]
 #endif
 
 -- | Parse a Haskell expression from source code into a Template Haskell expression
 -- using a given set of GHC extensions.
-parseExpWithExts :: [GhcTH.Extension] -> String -> Either (Int, Int, String) TH.Exp
+parseExpWithExts :: [Extension] -> String -> Either (Int, Int, String) TH.Exp
 parseExpWithExts exts = parseExpWithFlags (Settings.baseDynFlags exts)
 
 -- | Parse a Haskell expression from source code into a Template Haskell expression

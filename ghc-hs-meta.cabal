@@ -1,14 +1,14 @@
 cabal-version:  2.4
 
-name:           ghc-meta
+name:           ghc-hs-meta
 version:        0.1.0.0
 build-type:     Simple
 author:         Zachary Wood
 maintainer:     zac.wood@hey.com
 license:        BSD-3-Clause
 license-files:  LICENSE LICENSE-PyF
-synopsis:       Haskell source to Template Haskell expression
-description:    Generate Template Haskell expressions from Haskell source code using the GHC parser
+synopsis:       Translate Haskell source to Template Haskell expression
+description:    Translate from Haskell source code to Template Haskell expressions using the GHC parser
 category:       ghc,template-haskell
 tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
 
@@ -16,9 +16,9 @@ extra-source-files: CHANGELOG.md README.md
 
 library
   exposed-modules:
-      GHC.Meta.Parse
-      GHC.Meta.Settings
-      GHC.Meta.ToExp
+      Language.Haskell.Meta.Parse
+      Language.Haskell.Meta.Settings
+      Language.Haskell.Meta.Translate
   hs-source-dirs:
       src
   default-extensions:
@@ -48,8 +48,8 @@ test-suite tests
     , ghc-boot
     , hspec
     , bytestring
-    , ghc-meta
+    , ghc-hs-meta
 
 source-repository head
   type:     git
-  location: https://github.com/zacwood9/ghc-meta
+  location: https://github.com/zacwood9/ghc-hs-meta

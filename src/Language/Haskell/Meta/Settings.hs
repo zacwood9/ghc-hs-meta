@@ -5,7 +5,7 @@
 {-# OPTIONS_GHC -Wno-missing-fields -Wno-name-shadowing -Wno-unused-imports #-}
 
 -- | Settings needed for running the GHC Parser.
-module GHC.Meta.Settings (baseDynFlags) where
+module Language.Haskell.Meta.Settings (baseDynFlags) where
 
 {- ORMOLU_DISABLE -}
 
