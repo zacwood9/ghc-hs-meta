@@ -34,7 +34,17 @@ import RdrHsSyn (runECP_P)
 #endif
 
 import GHC.Hs.Extension (GhcPs)
+
+-- @HsExpr@ is available from GHC.Hs.Expr in all versions we support.
+-- However, the goal of GHC is to split HsExpr into its own package, under
+-- the namespace Language.Haskell.Syntax. The module split happened in 9.0,
+-- but still in the ghc package.
+#if MIN_VERSION_ghc(9,0,0)
 import Language.Haskell.Syntax (HsExpr(..))
+#else
+import GHC.Hs.Expr (HsExpr(..))
+#endif
+
 import Language.Haskell.TH (Extension(..))
 import qualified Language.Haskell.TH.Syntax as TH
 
@@ -53,7 +63,7 @@ parseExp = parseExpWithExts
     ]
 #else
 parseExp = parseExpWithExts
-    [ GhcTH.TypeApplications
+    [ TypeApplications
     ]
 #endif
 
@@ -99,10 +109,6 @@ parseHsExpr dynFlags s =
                 -- I have no idea what they can be
                 (_warnMessages, errorMessages) = msgs dynFlags
                 err = concatMap show errorMessages
-                line = SrcLoc.srcLocLine srcLoc
-                col = SrcLoc.srcLocCol srcLoc
-            in Left (line, col, err)
-            let err = showSDoc dynFlags doc
                 line = SrcLoc.srcLocLine srcLoc
                 col = SrcLoc.srcLocCol srcLoc
             in Left (line, col, err)
