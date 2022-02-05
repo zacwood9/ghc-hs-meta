@@ -1,0 +1,29 @@
+on: [push]
+name: Run Tests across GHC versions
+jobs:
+  ghc8107:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: '8.10.7'
+      - run: cabal test
+
+  ghc902:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: '9.0.2'
+      - run: cabal test
+
+  ghc921:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.0
+      - uses: haskell/actions/setup@v1
+        with:
+          ghc-version: '9.2.1'
+      - run: cabal test
