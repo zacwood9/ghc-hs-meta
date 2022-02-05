@@ -39,7 +39,7 @@ import GHC.Hs.Extension (GhcPs)
 -- However, the goal of GHC is to split HsExpr into its own package, under
 -- the namespace Language.Haskell.Syntax. The module split happened in 9.0,
 -- but still in the ghc package.
-#if MIN_VERSION_ghc(9,0,0)
+#if MIN_VERSION_ghc(9,2,0)
 import Language.Haskell.Syntax (HsExpr(..))
 #else
 import GHC.Hs.Expr (HsExpr(..))
