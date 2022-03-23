@@ -64,6 +64,7 @@ parseExp = parseExpWithExts
 #else
 parseExp = parseExpWithExts
     [ TypeApplications
+    , OverloadedLabels
     ]
 #endif
 

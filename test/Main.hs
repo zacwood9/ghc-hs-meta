@@ -23,12 +23,12 @@ spec = do
       let Right exp = parseExp "(.b.c.d)"
       let Just list = nonEmpty ["b", "c", "d"]
       exp `shouldBe` TH.ProjectionE list
+#endif
 
   describe "Overloaded labels" $ do
     it "parses labels" $ do
       let Right exp = parseExp "#name"
       exp `shouldBe` TH.LabelE "name"
-#endif
 
   describe "Type application" $ do
     it "parses application" $ do
