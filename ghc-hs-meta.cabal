@@ -10,7 +10,7 @@ license-files:  LICENSE LICENSE-PyF
 synopsis:       Translate Haskell source to Template Haskell expression
 description:    Translate from Haskell source code to Template Haskell expressions using the GHC parser
 category:       ghc,template-haskell
-tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
+tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4, GHC == 9.4.1
 
 extra-source-files: CHANGELOG.md README.md
 
@@ -26,10 +26,10 @@ library
       LambdaCase
   ghc-options: -Wall
   build-depends:
-      base >= 4.14 && <4.17
-    , ghc >= 8.10.7 && < 9.3
-    , ghc-boot >= 8.10.7 && < 9.3
-    , template-haskell >= 2.16.0 && < 2.19
+      base >= 4.14 && <4.18
+    , ghc >= 8.10.7 && < 9.5
+    , ghc-boot >= 8.10.7 && < 9.5
+    , template-haskell >= 2.16.0 && < 2.20
     , bytestring >= 0.10 && < 0.12
   default-language: Haskell2010
 

@@ -4,10 +4,19 @@
 -- | This module is here to parse Haskell expression using the GHC Api
 module Language.Haskell.Meta.Parse (parseExp, parseExpWithExts, parseExpWithFlags, parseHsExpr) where
 
-#if MIN_VERSION_ghc(9,2,0)
-import qualified GHC.Parser.Errors.Ppr as ParserErrorPpr
-import GHC.Driver.Config (initParserOpts)
+#if MIN_VERSION_ghc(9,4,0)
+import GHC.Parser.Errors.Ppr ()
 import GHC.Parser.Annotation (LocatedA)
+import GHC.Utils.Outputable
+#elif MIN_VERSION_ghc(9,2,0)
+import qualified GHC.Parser.Errors.Ppr as ParserErrorPpr
+import GHC.Parser.Annotation (LocatedA)
+#endif
+
+#if MIN_VERSION_ghc(9,4,0)
+import GHC.Driver.Config.Parser (initParserOpts)
+#elif MIN_VERSION_ghc(9,2,0)
+import GHC.Driver.Config (initParserOpts)
 #endif
 
 #if MIN_VERSION_ghc(9,0,0)
@@ -90,8 +99,14 @@ parseHsExpr dynFlags s =
             expr
 
 {- ORMOLU_DISABLE #-}
-#if MIN_VERSION_ghc(9,2,0)
-    -- TODO messages?
+#if MIN_VERSION_ghc(9,4,0)
+    PFailed PState{loc=SrcLoc.psRealLoc -> srcLoc, errors=errorMessages} ->
+            let
+                err = renderWithContext defaultSDocContext (ppr errorMessages)
+                line = SrcLoc.srcLocLine srcLoc
+                col = SrcLoc.srcLocCol srcLoc
+            in Left (line, col, err)
+#elif MIN_VERSION_ghc(9,2,0)
     PFailed PState{loc=SrcLoc.psRealLoc -> srcLoc, errors=errorMessages} ->
             let
                 psErrToString e = show $ ParserErrorPpr.pprError e

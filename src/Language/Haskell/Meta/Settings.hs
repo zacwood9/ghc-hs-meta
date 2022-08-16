@@ -156,6 +156,10 @@ fakeSettings = Settings
         platformWordSize=8
       , platformOS=OSUnknown
 #endif
+
+#if MIN_VERSION_ghc(9, 4, 0)
+      , platformHasLibm = False
+#endif
       , platformUnregisterised=True
       }
 #if MIN_VERSION_ghc(9, 2, 0)
