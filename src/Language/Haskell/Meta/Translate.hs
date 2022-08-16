@@ -41,9 +41,9 @@ import GHC.Data.FastString
 import GHC.Utils.Outputable (ppr)
 import GHC.Types.Basic (Boxity(..))
 import GHC.Types.SourceText (il_value, rationalFromFractionalLit)
-import GHC.Driver.Ppr (showSDocDebug)
+import GHC.Driver.Ppr (showSDoc)
 #else
-import GHC.Utils.Outputable (ppr, showSDocDebug)
+import GHC.Utils.Outputable (ppr, showSDoc)
 import GHC.Types.Basic (il_value, fl_value, Boxity(..))
 #endif
 import GHC.Driver.Session (DynFlags, xopt_set, defaultDynFlags)
@@ -53,7 +53,7 @@ import SrcLoc
 import Name
 import RdrName
 import FastString
-import Outputable (ppr, showSDocDebug)
+import Outputable (ppr, showSDoc)
 import BasicTypes (il_value, fl_value, Boxity(..))
 import DynFlags (DynFlags, xopt_set, defaultDynFlags)
 import qualified Module
@@ -104,7 +104,7 @@ toType (HsTyVar _ _ n) =
    in if isRdrTyVar n'
         then TH.VarT (toName n')
         else TH.ConT (toName n')
-toType t = todo "toType" (showSDocDebug (Settings.baseDynFlags []) . ppr $ t)
+toType t = todo "toType" (showSDoc(Settings.baseDynFlags []) . ppr $ t)
 
 toName :: RdrName -> TH.Name
 toName n = case n of
@@ -118,7 +118,7 @@ toFieldExp = undefined
 
 toPat :: DynFlags -> Pat.Pat GhcPs -> TH.Pat
 toPat _dynFlags (Pat.VarPat _ (unLoc -> name)) = TH.VarP (toName name)
-toPat dynFlags p = todo "toPat" (showSDocDebug dynFlags . ppr $ p)
+toPat dynFlags p = todo "toPat" (showSDoc dynFlags . ppr $ p)
 
 toExp :: DynFlags -> Expr.HsExpr GhcPs -> TH.Exp
 toExp _ (Expr.HsVar _ n) =
@@ -201,7 +201,11 @@ toExp d (Expr.ExplicitTuple _ (map unLoc -> args) boxity) = ctor tupArgs
 #endif
 
 -- toExp (Expr.List _ xs)                        = TH.ListE (fmap toExp xs)
+#if MIN_VERSION_ghc(9, 4, 0)
+toExp d (Expr.HsPar _ _ e _)
+#else
 toExp d (Expr.HsPar _ e)
+#endif
   = TH.ParensE (toExp d . unLoc $ e)
 
 toExp d (Expr.SectionL _ (unLoc -> a) (unLoc -> b))
@@ -233,7 +237,21 @@ toExp d (Expr.ArithSeq _ _ e)
     (FromTo a b) -> TH.FromToR (toExp d $ unLoc a) (toExp d $ unLoc b)
     (FromThenTo a b c) -> TH.FromThenToR (toExp d $ unLoc a) (toExp d $ unLoc b) (toExp d $ unLoc c)
 
-#if MIN_VERSION_ghc(9, 2, 0)
+#if MIN_VERSION_ghc(9, 4, 0)
+toExp _ (Expr.HsProjection _ locatedFields) =
+  let
+    extractFieldLabel (DotFieldOcc _ locatedStr) = locatedStr
+    extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
+  in
+    TH.ProjectionE (NonEmpty.map (unpackFS . unLoc . extractFieldLabel . unLoc) locatedFields)
+
+toExp d (Expr.HsGetField _ expr locatedField) =
+  let
+    extractFieldLabel (DotFieldOcc _ locatedStr) = locatedStr
+    extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
+  in
+    TH.GetFieldE (toExp d (unLoc expr)) (unpackFS . unLoc . extractFieldLabel . unLoc $ locatedField)
+#elif MIN_VERSION_ghc(9, 2, 0)
 toExp _ (Expr.HsProjection _ locatedFields) =
   let
     extractFieldLabel (HsFieldLabel _ locatedStr) = locatedStr
@@ -249,13 +267,14 @@ toExp d (Expr.HsGetField _ expr locatedField) =
     TH.GetFieldE (toExp d (unLoc expr)) (unpackFS . unLoc . extractFieldLabel . unLoc $ locatedField)
 #endif
 
+
 #if MIN_VERSION_ghc(9, 2, 0)
 toExp _ (Expr.HsOverLabel _ fastString) = TH.LabelE (unpackFS fastString)
 #else
 toExp _ (Expr.HsOverLabel _ _ fastString) = TH.LabelE (unpackFS fastString)
 #endif
 
-toExp dynFlags e = todo "toExp" (showSDocDebug dynFlags . ppr $ e)
+toExp dynFlags e = todo "toExp" (showSDoc dynFlags . ppr $ e)
 
 todo :: (HasCallStack, Show e) => String -> e -> a
 todo fun thing = error . concat $ [moduleName, ".", fun, ": not implemented: ", show thing]
