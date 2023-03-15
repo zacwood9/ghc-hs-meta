@@ -16,6 +16,10 @@ import GHC.Hs.Types (HsWildCardBndrs (..), HsType (..), HsImplicitBndrs (HsIB, h
 import HsTypes (HsWildCardBndrs (..), HsType (..), HsImplicitBndrs (HsIB), hsib_body)
 #endif
 
+#if MIN_VERSION_ghc(9,6,0)
+import Language.Haskell.Syntax.Basic (FieldLabelString (..))
+#endif
+
 #if MIN_VERSION_ghc(8,10,0)
 import GHC.Hs.Expr as Expr
 import GHC.Hs.Extension as Ext
@@ -128,7 +132,7 @@ toExp _ (Expr.HsVar _ n) =
         else TH.VarE (toName n')
 
 #if MIN_VERSION_ghc(9,0,0)
-toExp _ (Expr.HsUnboundVar _ n)              = TH.UnboundVarE (TH.mkName . occNameString $ n)
+toExp _ (Expr.HsUnboundVar _ n)              = TH.UnboundVarE (TH.mkName . occNameString . occName $ n)
 #else
 toExp _ (Expr.HsUnboundVar _ n)              = TH.UnboundVarE (TH.mkName . occNameString . Expr.unboundVarOcc $ n)
 #endif
@@ -146,7 +150,11 @@ toExp d (Expr.HsApp _ e1 e2)
   = TH.AppE (toExp d . unLoc $ e1) (toExp d . unLoc $ e2)
 
 #if MIN_VERSION_ghc(9,2,0)
+#if MIN_VERSION_ghc(9,6,0)
+toExp d (Expr.HsAppType _ e _ HsWC {hswc_body}) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
+#else
 toExp d (Expr.HsAppType _ e HsWC {hswc_body}) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
+#endif
 toExp d (Expr.ExprWithTySig _ e HsWC{hswc_body=unLoc -> HsSig{sig_body}}) = TH.SigE (toExp d . unLoc $ e) (toType . unLoc $ sig_body)
 #elif MIN_VERSION_ghc(8,8,0)
 toExp d (Expr.HsAppType _ e HsWC {hswc_body}) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
@@ -162,7 +170,11 @@ toExp d (Expr.NegApp _ e _)
   = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
 
 -- NOTE: for lambda, there is only one match
+#if MIN_VERSION_ghc(9,6,0)
+toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)]))))
+#else
 toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)])) _))
+#endif
   = TH.LamE (fmap (toPat d) ps) (toExp d e)
 
 -- toExp (Expr.Let _ bs e)                       = TH.LetE (toDecs bs) (toExp e)
@@ -237,7 +249,21 @@ toExp d (Expr.ArithSeq _ _ e)
     (FromTo a b) -> TH.FromToR (toExp d $ unLoc a) (toExp d $ unLoc b)
     (FromThenTo a b c) -> TH.FromThenToR (toExp d $ unLoc a) (toExp d $ unLoc b) (toExp d $ unLoc c)
 
-#if MIN_VERSION_ghc(9, 4, 0)
+#if MIN_VERSION_ghc(9, 6, 0)
+toExp _ (Expr.HsProjection _ locatedFields) =
+  let
+    extractFieldLabel (DotFieldOcc _ locatedStr) = field_label <$> locatedStr
+    extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
+  in
+    TH.ProjectionE (NonEmpty.map (unpackFS . unLoc . extractFieldLabel . unLoc) locatedFields)
+
+toExp d (Expr.HsGetField _ expr locatedField) =
+  let
+    extractFieldLabel (DotFieldOcc _ locatedStr) = field_label <$> locatedStr
+    extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
+  in
+    TH.GetFieldE (toExp d (unLoc expr)) (unpackFS . unLoc . extractFieldLabel . unLoc $ locatedField)
+#elif MIN_VERSION_ghc(9, 4, 0)
 toExp _ (Expr.HsProjection _ locatedFields) =
   let
     extractFieldLabel (DotFieldOcc _ locatedStr) = locatedStr
@@ -268,7 +294,7 @@ toExp d (Expr.HsGetField _ expr locatedField) =
 #endif
 
 
-#if MIN_VERSION_ghc(9, 2, 0)
+#if MIN_VERSION_ghc(9, 2, 0) && !MIN_VERSION_ghc(9, 6, 0)
 toExp _ (Expr.HsOverLabel _ fastString) = TH.LabelE (unpackFS fastString)
 #else
 toExp _ (Expr.HsOverLabel _ _ fastString) = TH.LabelE (unpackFS fastString)

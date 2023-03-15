@@ -169,15 +169,18 @@ fakeSettings = Settings
       PlatformConstants{pc_DYNAMIC_BY_DEFAULT=False,pc_WORD_SIZE=8}
 #endif
 
-#if MIN_VERSION_ghc(8, 10, 0)
-fakeLlvmConfig :: LlvmConfig
-fakeLlvmConfig = LlvmConfig [] []
+#if MIN_VERSION_ghc(9, 6, 0)
+applyFakeLlvmConfig :: a -> a
+applyFakeLlvmConfig = id
+#elif MIN_VERSION_ghc(8, 10, 0)
+applyFakeLlvmConfig :: (LlvmConfig -> a) -> a
+applyFakeLlvmConfig f = f $ LlvmConfig [] []
 #else
-fakeLlvmConfig :: (LlvmTargets, LlvmPasses)
-fakeLlvmConfig = ([], [])
+applyFakeLlvmConfig :: (LlvmTargets, LlvmPasses)
+applyFakeLlvmConfig f = f ([], [])
 #endif
 
 baseDynFlags :: [GhcTH.Extension] -> DynFlags
 baseDynFlags exts =
   let enable = GhcTH.TemplateHaskellQuotes : exts
-   in foldl xopt_set (defaultDynFlags fakeSettings fakeLlvmConfig) enable
+   in foldl xopt_set (applyFakeLlvmConfig $ defaultDynFlags fakeSettings) enable
