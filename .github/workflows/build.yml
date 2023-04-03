@@ -1,38 +1,20 @@
 on: [push]
 name: Run Tests across GHC versions
 jobs:
-  ghc8107:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc:
+          - 8.10.7
+          - 9.0.2
+          - 9.2.7
+          - 9.4.4
+          - 9.6.1
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: haskell/actions/setup@v1
+      - uses: actions/checkout@v3
+      - uses: haskell/actions/setup@v2
         with:
-          ghc-version: '8.10.7'
-      - run: cabal test
-
-  ghc902:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: haskell/actions/setup@v1
-        with:
-          ghc-version: '9.0.2'
-      - run: cabal test
-
-  ghc924:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: haskell/actions/setup@v1
-        with:
-          ghc-version: '9.2.4'
-      - run: cabal test
-
-  ghc941:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2.4.0
-      - uses: haskell/actions/setup@v1
-        with:
-          ghc-version: '9.4.1'
+          ghc-version: ${{ matrix.ghc }}
       - run: cabal test
