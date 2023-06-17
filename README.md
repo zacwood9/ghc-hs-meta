@@ -1,7 +1,7 @@
 # ghc-hs-meta
 
 Generate Template Haskell expressions from Haskell source code using the GHC parser.
-This package runs on GHC versions 8.10.7, 9.0.2, 9.2.4, and 9.4.1.
+This package runs on GHC versions 8.10, 9.0, 9.2, 9.4 and 9.6.
 
 ## Usage
 
