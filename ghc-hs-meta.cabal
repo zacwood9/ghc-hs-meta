@@ -1,16 +1,16 @@
 cabal-version:  2.4
 
 name:           ghc-hs-meta
-version:        0.1.1.0
+version:        0.1.2.0
 build-type:     Simple
 author:         Zachary Wood
-maintainer:     zac.wood@hey.com
+maintainer:     amesgen@amesgen.de
 license:        BSD-3-Clause
 license-files:  LICENSE LICENSE-PyF
 synopsis:       Translate Haskell source to Template Haskell expression
 description:    Translate from Haskell source code to Template Haskell expressions using the GHC parser
 category:       ghc,template-haskell
-tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.4, GHC == 9.4.1
+tested-with:    GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.8, GHC == 9.4.5, GHC == 9.6.2
 
 extra-source-files: CHANGELOG.md README.md
 
