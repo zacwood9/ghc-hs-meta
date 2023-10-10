@@ -91,7 +91,14 @@ toLit (HsInteger _ i _) = TH.IntegerL i
 toLit (HsRat _ f _) = TH.FloatPrimL (fl_value f)
 toLit (HsFloatPrim _ f) = TH.FloatPrimL (fl_value f)
 toLit (HsDoublePrim _ f) = TH.DoublePrimL (fl_value f)
-
+#if MIN_VERSION_ghc(9,8,0)
+toLit HsInt8Prim{} = noTH "toLit" "HsInt8Prim"
+toLit HsInt16Prim{} = noTH "toLit" "HsInt16Prim"
+toLit HsInt32Prim{} = noTH "toLit" "HsInt32Prim"
+toLit HsWord8Prim{} = noTH "toLit" "HsWord8Prim"
+toLit HsWord16Prim{} = noTH "toLit" "HsWord16Prim"
+toLit HsWord32Prim{} = noTH "toLit" "HsWord32Prim"
+#endif
 #if !MIN_VERSION_ghc(9,0,0)
 toLit (XLit _) = noTH "toLit" "XLit"
 #endif
