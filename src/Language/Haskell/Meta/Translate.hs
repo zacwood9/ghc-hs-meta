@@ -157,7 +157,7 @@ toExp d (Expr.HsApp _ e1 e2)
   = TH.AppE (toExp d . unLoc $ e1) (toExp d . unLoc $ e2)
 
 #if MIN_VERSION_ghc(9,2,0)
-#if MIN_VERSION_ghc(9,6,0)
+#if MIN_VERSION_ghc(9,6,0) && !MIN_VERSION_ghc(9,10,0)
 toExp d (Expr.HsAppType _ e _ HsWC {hswc_body}) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
 #else
 toExp d (Expr.HsAppType _ e HsWC {hswc_body}) = TH.AppTypeE (toExp d . unLoc $ e) (toType . unLoc $ hswc_body)
@@ -177,7 +177,9 @@ toExp d (Expr.NegApp _ e _)
   = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
 
 -- NOTE: for lambda, there is only one match
-#if MIN_VERSION_ghc(9,6,0)
+#if MIN_VERSION_ghc(9,10,0)
+toExp d (Expr.HsLam _ LamSingle (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)]))))
+#elif MIN_VERSION_ghc(9,6,0)
 toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)]))))
 #else
 toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)])) _))
@@ -220,7 +222,7 @@ toExp d (Expr.ExplicitTuple _ (map unLoc -> args) boxity) = ctor tupArgs
 #endif
 
 -- toExp (Expr.List _ xs)                        = TH.ListE (fmap toExp xs)
-#if MIN_VERSION_ghc(9, 4, 0)
+#if MIN_VERSION_ghc(9, 4, 0) && !MIN_VERSION_ghc(9, 10, 0)
 toExp d (Expr.HsPar _ _ e _)
 #else
 toExp d (Expr.HsPar _ e)
