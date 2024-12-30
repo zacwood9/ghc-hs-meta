@@ -1,3 +1,7 @@
+# 0.1.5.0
+
+ * Support GHC 9.12
+
 # 0.1.4.0
 
  * Support GHC 9.10
