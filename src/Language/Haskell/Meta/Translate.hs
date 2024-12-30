@@ -91,6 +91,9 @@ toLit (HsInteger _ i _) = TH.IntegerL i
 toLit (HsRat _ f _) = TH.FloatPrimL (fl_value f)
 toLit (HsFloatPrim _ f) = TH.FloatPrimL (fl_value f)
 toLit (HsDoublePrim _ f) = TH.DoublePrimL (fl_value f)
+#if MIN_VERSION_ghc(9,12,0)
+toLit (HsMultilineString _ s) = TH.StringL (unpackFS s)
+#endif
 #if MIN_VERSION_ghc(9,8,0)
 toLit HsInt8Prim{} = noTH "toLit" "HsInt8Prim"
 toLit HsInt16Prim{} = noTH "toLit" "HsInt16Prim"
@@ -177,7 +180,9 @@ toExp d (Expr.NegApp _ e _)
   = TH.AppE (TH.VarE 'negate) (toExp d . unLoc $ e)
 
 -- NOTE: for lambda, there is only one match
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
+toExp d (Expr.HsLam _ LamSingle (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc . unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)]))))
+#elif MIN_VERSION_ghc(9,10,0)
 toExp d (Expr.HsLam _ LamSingle (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)]))))
 #elif MIN_VERSION_ghc(9,6,0)
 toExp d (Expr.HsLam _ (Expr.MG _ (unLoc -> (map unLoc -> [Expr.Match _ _ (map unLoc -> ps) (Expr.GRHSs _ [unLoc -> Expr.GRHS _ _ (unLoc -> e)] _)]))))
@@ -259,12 +264,16 @@ toExp d (Expr.ArithSeq _ _ e)
     (FromThenTo a b c) -> TH.FromThenToR (toExp d $ unLoc a) (toExp d $ unLoc b) (toExp d $ unLoc c)
 
 #if MIN_VERSION_ghc(9, 6, 0)
+#if MIN_VERSION_ghc(9, 12, 0)
 toExp _ (Expr.HsProjection _ locatedFields) =
+#else
+toExp _ (Expr.HsProjection _ (fmap unLoc -> locatedFields)) =
+#endif
   let
     extractFieldLabel (DotFieldOcc _ locatedStr) = field_label <$> locatedStr
     extractFieldLabel _ = error "Don't know how to handle XHsFieldLabel constructor..."
   in
-    TH.ProjectionE (NonEmpty.map (unpackFS . unLoc . extractFieldLabel . unLoc) locatedFields)
+    TH.ProjectionE (NonEmpty.map (unpackFS . unLoc . extractFieldLabel) locatedFields)
 
 toExp d (Expr.HsGetField _ expr locatedField) =
   let
@@ -303,7 +312,7 @@ toExp d (Expr.HsGetField _ expr locatedField) =
 #endif
 
 
-#if MIN_VERSION_ghc(9, 2, 0) && !MIN_VERSION_ghc(9, 6, 0)
+#if (MIN_VERSION_ghc(9, 2, 0) && !MIN_VERSION_ghc(9, 6, 0)) || MIN_VERSION_ghc(9, 12, 0)
 toExp _ (Expr.HsOverLabel _ fastString) = TH.LabelE (unpackFS fastString)
 #else
 toExp _ (Expr.HsOverLabel _ _ fastString) = TH.LabelE (unpackFS fastString)
