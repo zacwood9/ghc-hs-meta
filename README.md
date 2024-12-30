@@ -1,7 +1,8 @@
 # ghc-hs-meta
 
+[![Hackage](https://img.shields.io/hackage/v/ghc-hs-meta)](https://hackage.haskell.org/package/ghc-hs-meta)
+
 Generate Template Haskell expressions from Haskell source code using the GHC parser.
-This package runs on GHC versions 8.10, 9.0, 9.2, 9.4, 9.6, 9.8 and 9.10.
 
 ## Usage
 
